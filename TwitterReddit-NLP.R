@@ -268,4 +268,3 @@ country.r.sent %>% filter(type != 'Type 1') %>% group_by(country) %>%
 ca.r[which.min(country.r.sent[1:nrow(ca.r), ]$score), ]$stripped_text
 mx.r[which.min(country.r.sent[nrow(ca.r) + 1:1000000L, ]$score), ]$stripped_text
 
-#g)	Compare the sentiment results in Part 2f with the sentiment results in Part 1g. What similarities do you see? What differences? Why?
