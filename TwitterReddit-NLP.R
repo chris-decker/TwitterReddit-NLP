@@ -8,7 +8,6 @@ library(tidyr)
 library(purrr)
 library(RedditExtractoR)
 
-#Part 1)
 
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 load(file = 'TwAPIAuth')
@@ -21,7 +20,7 @@ create_token(
   access_secret = access_secret
 )
 
-#a)	Pick two countries and search for the tweets associated with these two terms. (use a search tool, do not retrieve tweets from specific usernames)
+#Retrieve sample of tweets mentioning 'canada' and 'mexico'
 
 ca <-
   search_tweets('canada',
@@ -38,7 +37,7 @@ mx <-
 
 load(file = 'content')
 
-#b) Process each set of tweets into tidy text or corpus objects.
+#Process each set of tweets into tidytext objects
 
 unescape_html <- function(str) {
   xml2::xml_text(xml2::read_html(paste0('<x>', str, '</x>')))
@@ -56,7 +55,7 @@ mx.tidy <- mx %>%
   select(stripped_text) %>%
   unnest_tokens(word, stripped_text)
 
-#c)	Use some of the pre-processing transformations described in the lecture.
+#Apply pre-processing transformations
 
 data('stop_words')
 
@@ -65,7 +64,7 @@ ca.pre <-
 mx.pre <-
   mx.tidy %>% filter(sapply(mx.tidy, str_length) > 2) %>%  anti_join(stop_words) %>% mutate(word = str_replace(word, "'|'", ''))
 
-#d)	Get a list of the most frequent terms from each country's tweets. Compare them. Do the results make sense?
+#Generate frequency for each term
 
 ca.count <-
   ca.pre %>% filter(word != 'canada') %>% count(word, sort = T)
@@ -74,7 +73,7 @@ mx.count <-
 ca.count
 mx.count
 
-#e)	Show the word cloud for each country.
+#Generate word clouds
 
 wordcloud(
   words = ca.count$word,
@@ -96,7 +95,7 @@ wordcloud(
   colors = brewer.pal(8, 'Dark2')
 )
 
-#f)	Show top word pairs (bigrams) for each country as described in the lecture.
+#Generate frequency for each bigram
 
 create.bgrm <- function(twt) {
   bgrm <- twt %>%
@@ -117,7 +116,7 @@ ca.bgrm %>% count(Word1, Word2, sort = T)
 mx.bgrm <- create.bgrm(mx)
 mx.bgrm %>% count(Word1, Word2, sort = T)
 
-#g)	Compute the sentiment score (as described in the lecture) for all the tweets for each country. Compare the sentiments for the two countries. Do the results make sense?
+#Generate  sentiment scores for each tweet & compute summary statistics
 
 sentiment_bing = function(twt) {
   twt_tbl = tibble(stripped_text = twt) %>%
@@ -162,16 +161,19 @@ country.sent %>% filter(type != 'Type 1') %>% group_by(country) %>%
     min = min(score)
   )
 
+#Display most negative tweets for each country
+
 ca[which.min(country.sent[1:nrow(ca), ]$score), ]$stripped_text
 mx[which.min(country.sent[nrow(ca) + 1:1000000L, ]$score), ]$stripped_text
+
+#Further analysis on subset of tweets
 
 ca %>% select(stripped_text) %>% filter(str_detect(tolower(stripped_text), 'people')) %>% top_n(10) %>% View
 
 get_sentiments('bing') %>% filter(word == 'migrants')
 
-#Part 2)
 
-#a)	Pick two countries and search for the Reddit comments on the Subreddit "World News" for these two countries.
+#Retrieve sample of Reddit comments mentioning 'canada' and 'mexico'
 
 get.wn.comments <- function(term) {
   links = reddit_urls(
@@ -186,7 +188,7 @@ get.wn.comments <- function(term) {
 ca.r <- get.wn.comments('canada')
 mx.r <- get.wn.comments('mexico')
 
-#b)	Process each set of comments into tidy text or corpus objects..
+#Process each set of comments into tidytext objects
 
 ca.r$stripped_text <-
   gsub('http\\S+', '', sapply(ca.r$comment, unescape_html))
@@ -200,14 +202,14 @@ mx.r.tidy <- mx.r %>%
   select(stripped_text) %>%
   unnest_tokens(word, stripped_text)
 
-#c)	Use some of the pre-processing transformations described in the lecture.
+#Apply pre-processing transformations
 
 ca.r.pre <-
   ca.r.tidy %>% filter(sapply(ca.r.tidy, str_length) > 2) %>% anti_join(stop_words) %>% mutate(word = str_replace(word, "'|'", ''))
 mx.r.pre <-
   mx.r.tidy %>% filter(sapply(mx.r.tidy, str_length) > 2) %>% anti_join(stop_words) %>% mutate(word = str_replace(word, "'|'", ''))
 
-#d)	Get a list of the most frequent terms from each country's Reddit "World News" comments. Compare them. Do the results make sense?
+#Generate frequency for each term
 
 ca.r.count <-
   ca.r.pre %>% filter(word != 'canada') %>% count(word, sort = T)
@@ -216,7 +218,7 @@ mx.r.count <-
 ca.r.count
 mx.r.count
 
-#e)	Show the word cloud for each country.
+#Generate word clouds
 
 wordcloud(
   words = ca.r.count$word,
@@ -238,7 +240,7 @@ wordcloud(
   colors = brewer.pal(8, 'Dark2')
 )
 
-#f)	Compute the sentiment score (as described in the lecture) for the Reddit comments for each country. Compare the sentiments for the two countries. Do the results make sense?
+#Generate  sentiment scores for each post & compute summary statistics
 
 ca.r.sent <- lapply(ca.r$stripped_text, sentiment_bing)
 mx.r.sent <- lapply(mx.r$stripped_text, sentiment_bing)
@@ -265,6 +267,7 @@ country.r.sent %>% filter(type != 'Type 1') %>% group_by(country) %>%
     min = min(score)
   )
 
+#Display most negative posts for each country
+
 ca.r[which.min(country.r.sent[1:nrow(ca.r), ]$score), ]$stripped_text
 mx.r[which.min(country.r.sent[nrow(ca.r) + 1:1000000L, ]$score), ]$stripped_text
-
